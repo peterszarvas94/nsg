@@ -339,9 +339,9 @@ setup_ssl() {
     log_success "$domain SSL setup complete and working!"
     
     echo ""
-    echo "🎉 SSL enabled for $domain!"
+    echo "SSL enabled for $domain!"
     echo ""
-    echo "📁 Your website files go here:"
+    echo "Your website files go here:"
     echo "   Webroot: /var/www/$domain/"
     echo ""
     echo "   Quick test:"
@@ -352,7 +352,7 @@ setup_ssl() {
     echo "   sudo chown -R www-data:www-data /var/www/$domain/"
     echo "   sudo chmod -R 755 /var/www/$domain/"
     echo ""
-    echo "🌐 Visit: https://$domain"
+    echo "Visit: https://$domain"
     echo ""
 }
 
@@ -361,7 +361,7 @@ remove_site() {
     local webroot="/var/www/$domain"
     local config_file="${domain}.conf"
     
-    log_warn "⚠️  REMOVING SITE: $domain"
+    log_warn "REMOVING SITE: $domain"
     echo ""
     echo "This will permanently delete:"
     echo "  - Website files: $webroot"
@@ -425,7 +425,7 @@ remove_site() {
     fi
     
     echo ""
-    log_success "🗑️  Site $domain completely removed!"
+    log_success "Site $domain completely removed!"
     echo ""
 }
 
@@ -434,7 +434,7 @@ check_site() {
     local webroot="/var/www/$domain"
     local config_file="${domain}.conf"
     
-    echo "🔍 CHECKING DOMAIN HEALTH: $domain"
+    echo "CHECKING DOMAIN HEALTH: $domain"
     echo ""
     
     local issues=0
@@ -583,20 +583,21 @@ check_site() {
     fi
     
     echo ""
-    echo "📊 HEALTH CHECK SUMMARY:"
+    echo "HEALTH CHECK SUMMARY:"
     echo "========================"
     
     if [ $issues -eq 0 ]; then
-        log_success "🎉 $domain is healthy! All checks passed."
+        log_success "$domain is healthy! All checks passed."
         echo ""
-        echo "🌐 URLs to test:"
-        echo "   http://$domain (should redirect to HTTPS)"
-        echo "   https://$domain (should work)"
-        echo "   https://www.$domain (should redirect to non-www)"
+        echo "URLs to test:"
+        echo "   http://$domain -> https://$domain"
+        echo "   http://www.$domain -> https://$domain"
+        echo "   https://$domain -> works"
+        echo "   https://www.$domain -> https://$domain"
     else
-        log_error "❌ $domain has $issues issue(s) that need attention."
+        log_error "$domain has $issues issue(s) that need attention."
         echo ""
-        echo "💡 Common fixes:"
+        echo "Common fixes:"
         echo "   - DNS not pointing to server: Update A records"
         echo "   - Nginx not running: sudo systemctl start nginx"
         echo "   - Config errors: sudo nginx -t"
@@ -748,9 +749,9 @@ case $FLAG in
         enable_site "$DOMAIN"
         setup_ssl "$DOMAIN"
         echo ""
-        log_success "🎉 $DOMAIN is fully configured with nginx + SSL!"
+        log_success "$DOMAIN is fully configured with nginx + SSL!"
         echo ""
-        echo "📁 NEXT STEP: Add your website files"
+        echo "NEXT STEP: Add your website files"
         echo "   Webroot: /var/www/$DOMAIN/"
         echo ""
         echo "   Quick test:"
@@ -761,7 +762,7 @@ case $FLAG in
         echo "   sudo chown -R www-data:www-data /var/www/$DOMAIN/"
         echo "   sudo chmod -R 755 /var/www/$DOMAIN/"
         echo ""
-        echo "🌐 Visit: https://$DOMAIN"
+        echo "Visit: https://$DOMAIN"
         echo ""
         ;;
     --check)

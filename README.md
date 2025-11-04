@@ -4,12 +4,12 @@
 
 Single script to setup static websites with:
 
-- ✅ **Two-stage SSL deployment** - HTTP first, HTTPS after certificate generation
-- ✅ **HTTP → HTTPS redirects** - Automatic HTTPS enforcement
-- ✅ **www → non-www redirects** - Canonical domain handling
-- ✅ **Auto SSL certificate renewal** - Let's Encrypt with cron
-- ✅ **Automated nginx configuration** - Zero-config setup
-- ✅ **Fresh Ubuntu compatible** - Auto-installs dependencies
+- **Two-stage SSL deployment** - HTTP first, HTTPS after certificate generation
+- **HTTP → HTTPS redirects** - Automatic HTTPS enforcement
+- **www → non-www redirects** - Canonical domain handling
+- **Auto SSL certificate renewal** - Let's Encrypt with cron
+- **Automated nginx configuration** - Zero-config setup
+- **Fresh Ubuntu compatible** - Auto-installs dependencies
 
 ## Quick Start
 
@@ -94,7 +94,7 @@ sudo bash -c 'cat > /var/www/example.com/index.html << EOF
 <html>
 <head><title>My Site</title></head>
 <body>
-    <h1>Welcome to my site! 🎉</h1>
+    <h1>Welcome to my site! </h1>
     <p>Nginx + SSL working perfectly!</p>
 </body>
 </html>
@@ -105,7 +105,7 @@ sudo chown -R www-data:www-data /var/www/example.com/
 sudo chmod -R 755 /var/www/example.com/
 ```
 
-**Visit your site:** `https://example.com` - should show your content with SSL! ✅
+**Visit your site:** `https://example.com` - should show your content with SSL! 
 
 ### 3. Multiple Sites
 
@@ -190,9 +190,9 @@ sudo chmod -R 755 /var/www/example.com/
 
 ## SSL Auto-Renewal
 
-- ✅ **Automatic daily renewal** at 3 AM via cron job
-- ✅ **Nginx auto-reload** after renewal
-- ✅ **90-day Let's Encrypt certificates** renewed at 30 days
+- **Automatic daily renewal** at 3 AM via cron job
+- **Nginx auto-reload** after renewal
+- **90-day Let's Encrypt certificates** renewed at 30 days
 
 **Check certificate status:**
 
