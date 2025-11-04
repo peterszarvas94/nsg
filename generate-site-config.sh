@@ -339,20 +339,20 @@ setup_ssl() {
     log_success "$domain SSL setup complete and working!"
     
     echo ""
-    echo "SSL enabled for $domain!"
+    log_success "SSL enabled for $domain!"
     echo ""
-    echo "Your website files go here:"
+    log_info "Your website files go here:"
     echo "   Webroot: /var/www/$domain/"
     echo ""
     echo "   Quick test:"
-    echo "   sudo bash -c 'echo \"<h1>Hello $domain! 🚀</h1>\" > /var/www/$domain/index.html'"
+    echo "   sudo bash -c 'echo \"<h1>Hello $domain!</h1>\" > /var/www/$domain/index.html'"
     echo ""
     echo "   Upload files:"
     echo "   sudo cp -r /path/to/your/website/* /var/www/$domain/"
     echo "   sudo chown -R www-data:www-data /var/www/$domain/"
     echo "   sudo chmod -R 755 /var/www/$domain/"
     echo ""
-    echo "Visit: https://$domain"
+    log_info "Visit: https://$domain"
     echo ""
 }
 
@@ -363,12 +363,12 @@ remove_site() {
     
     log_warn "REMOVING SITE: $domain"
     echo ""
-    echo "This will permanently delete:"
-    echo "  - Website files: $webroot"
-    echo "  - Nginx config: /etc/nginx/sites-available/$config_file"
-    echo "  - Nginx symlink: /etc/nginx/sites-enabled/$config_file"
-    echo "  - SSL certificate: /etc/letsencrypt/live/$domain"
-    echo "  - Local config: $config_file"
+    log_warn "This will permanently delete:"
+    echo "   - Website files: $webroot"
+    echo "   - Nginx config: /etc/nginx/sites-available/$config_file"
+    echo "   - Nginx symlink: /etc/nginx/sites-enabled/$config_file"
+    echo "   - SSL certificate: /etc/letsencrypt/live/$domain"
+    echo "   - Local config: $config_file"
     echo ""
     
     # Confirmation prompt
@@ -434,7 +434,7 @@ check_site() {
     local webroot="/var/www/$domain"
     local config_file="${domain}.conf"
     
-    echo "CHECKING DOMAIN HEALTH: $domain"
+    log_info "CHECKING DOMAIN HEALTH: $domain"
     echo ""
     
     local issues=0
@@ -583,13 +583,12 @@ check_site() {
     fi
     
     echo ""
-    echo "HEALTH CHECK SUMMARY:"
-    echo "========================"
+    log_info "HEALTH CHECK SUMMARY:"
     
     if [ $issues -eq 0 ]; then
         log_success "$domain is healthy! All checks passed."
         echo ""
-        echo "URLs to test:"
+        log_info "URLs to test:"
         echo "   http://$domain -> https://$domain"
         echo "   http://www.$domain -> https://$domain"
         echo "   https://$domain -> works"
@@ -597,7 +596,7 @@ check_site() {
     else
         log_error "$domain has $issues issue(s) that need attention."
         echo ""
-        echo "Common fixes:"
+        log_info "Common fixes:"
         echo "   - DNS not pointing to server: Update A records"
         echo "   - Nginx not running: sudo systemctl start nginx"
         echo "   - Config errors: sudo nginx -t"
@@ -751,18 +750,18 @@ case $FLAG in
         echo ""
         log_success "$DOMAIN is fully configured with nginx + SSL!"
         echo ""
-        echo "NEXT STEP: Add your website files"
+        log_info "NEXT STEP: Add your website files"
         echo "   Webroot: /var/www/$DOMAIN/"
         echo ""
         echo "   Quick test:"
-        echo "   sudo bash -c 'echo \"<h1>Hello World! 🚀</h1>\" > /var/www/$DOMAIN/index.html'"
+        echo "   sudo bash -c 'echo \"<h1>Hello World!</h1>\" > /var/www/$DOMAIN/index.html'"
         echo ""
         echo "   Upload files:"
         echo "   sudo cp -r /path/to/your/website/* /var/www/$DOMAIN/"
         echo "   sudo chown -R www-data:www-data /var/www/$DOMAIN/"
         echo "   sudo chmod -R 755 /var/www/$DOMAIN/"
         echo ""
-        echo "Visit: https://$DOMAIN"
+        log_info "Visit: https://$DOMAIN"
         echo ""
         ;;
     --check)
