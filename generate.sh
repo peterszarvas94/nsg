@@ -67,50 +67,6 @@ check_prerequisites() {
     log_info "Prerequisites checked (ignoring any existing nginx config issues)"
 }
 
-generate_ssl_challenge_conf() {
-    local domain=$1
-    local config_file="${domain}.conf"
-    
-    log_info "Generating temporary HTTP config for SSL challenge"
-    
-    if [ "$WWW_REDIRECT" = true ]; then
-        cat > "$config_file" << EOF
-server {
-    listen 80;
-    server_name ${domain} www.${domain};
-    location /.well-known/acme-challenge/ { 
-        root /var/www/certbot; 
-    }
-    location / { 
-        return 200 "SSL certificate setup in progress..."; 
-        add_header Content-Type text/plain;
-    }
-}
-EOF
-    else
-        cat > "$config_file" << EOF
-server {
-    listen 80;
-    server_name ${domain};
-    location /.well-known/acme-challenge/ { 
-        root /var/www/certbot; 
-    }
-    location / { 
-        return 200 "SSL certificate setup in progress..."; 
-        add_header Content-Type text/plain;
-    }
-}
-EOF
-    fi
-    
-    # Verify config file was created successfully
-    if [ ! -f "$config_file" ]; then
-        log_error "Failed to generate SSL challenge config file ${config_file}"
-        exit 1
-    fi
-    
-    log_info "Generated SSL challenge config ${config_file}"
-}
 
 show_help() {
     echo "Usage: $0 [ACTION] [--domain=example.com]"
@@ -146,6 +102,18 @@ generate_conf() {
     local config_file="${domain}.conf"
     
     log_info "Generating HTTPS config for $domain"
+    
+    # Check if SSL certificates exist
+    if [ ! -f "/etc/letsencrypt/live/${domain}/fullchain.pem" ] || [ ! -f "/etc/letsencrypt/live/${domain}/privkey.pem" ]; then
+        log_error "SSL certificates not found for $domain"
+        log_error "Expected files:"
+        log_error "  /etc/letsencrypt/live/${domain}/fullchain.pem"
+        log_error "  /etc/letsencrypt/live/${domain}/privkey.pem"
+        log_error "Run: $0 --ssl --domain=$domain first"
+        exit 1
+    fi
+    
+    log_info "SSL certificates found for $domain"
     
     if [ "$WWW_REDIRECT" = true ]; then
         # Template 1: HTTPS with www → non-www redirect
@@ -287,51 +255,35 @@ setup_ssl() {
     # Install certbot if not installed
     if ! command -v certbot &> /dev/null; then
         log_info "Installing certbot..."
-        sudo apt update && sudo apt install -y certbot python3-certbot-nginx
+        sudo apt update && sudo apt install -y certbot
         if [ $? -ne 0 ]; then
             log_error "Failed to install certbot"
             exit 1
         fi
     fi
     
-    # Create certbot directory structure
-    sudo mkdir -p /var/www/certbot/.well-known/acme-challenge
-    
-    # Ensure nginx is running
-    if ! systemctl is-active --quiet nginx; then
-        log_info "Starting nginx for SSL verification"
-        sudo systemctl start nginx
+    # Stop nginx temporarily for standalone mode
+    if systemctl is-active --quiet nginx; then
+        log_info "Stopping nginx for SSL certificate generation"
+        sudo systemctl stop nginx
     fi
     
-    # Get certificate for domain
+    # Get certificate using standalone mode
     if [ "$WWW_REDIRECT" = true ]; then
         log_info "Getting SSL certificate for $domain and www.$domain"
-        sudo certbot certonly --webroot -w /var/www/certbot -d "$domain" -d "www.$domain" --non-interactive --agree-tos --email admin@"$domain"
+        sudo certbot certonly --standalone -d "$domain" -d "www.$domain" --non-interactive --agree-tos --email admin@"$domain"
     else
         log_info "Getting SSL certificate for $domain only"
-        sudo certbot certonly --webroot -w /var/www/certbot -d "$domain" --non-interactive --agree-tos --email admin@"$domain"
+        sudo certbot certonly --standalone -d "$domain" --non-interactive --agree-tos --email admin@"$domain"
     fi
     
-    if [ $? -eq 0 ]; then
-        log_info "SSL certificate obtained for $domain"
-        
-        # Regenerate config with SSL
-        generate_conf "$domain"
-        sudo cp "${domain}.conf" /etc/nginx/sites-available/
-        
-        # Test and reload nginx
-        if sudo nginx -t &> /dev/null; then
-            sudo systemctl reload nginx
-            log_info "Nginx reloaded with SSL configuration"
-        else
-            log_warn "Nginx config test failed but continuing"
-            sudo systemctl reload nginx
-        fi
-    else
+    if [ $? -ne 0 ]; then
         log_error "Failed to get SSL certificate for $domain"
         log_error "Check that domain points to this server and ports 80/443 are open"
         exit 1
     fi
+    
+    log_info "SSL certificate obtained for $domain"
     
     # Setup auto-renewal cron job
     if ! crontab -l 2>/dev/null | grep -q "certbot renew"; then
@@ -340,16 +292,7 @@ setup_ssl() {
         log_info "SSL auto-renewal configured"
     fi
     
-    log_info "SSL setup complete!"
-    log_info "Your website files go here:"
-    echo "   Webroot: /var/www/$domain/"
-    echo "   Quick test:"
-    echo "   sudo bash -c 'echo \"<h1>Hello $domain!</h1>\" > /var/www/$domain/index.html'"
-    echo "   Upload files:"
-    echo "   sudo cp -r /path/to/your/website/* /var/www/$domain/"
-    echo "   sudo chown -R www-data:www-data /var/www/$domain/"
-    echo "   sudo chmod -R 755 /var/www/$domain/"
-    log_info "Visit: https://$domain"
+    log_info "SSL certificate setup complete!"
 }
 
 remove_site() {
@@ -734,13 +677,7 @@ case $FLAG in
         ;;
     --all)
         check_prerequisites
-        # Step 1: Create temporary HTTP config for SSL challenge
-        generate_ssl_challenge_conf "$DOMAIN"
-        copy_config "$DOMAIN"
-        enable_site "$DOMAIN"
-        # Step 2: Get SSL certificates
         setup_ssl "$DOMAIN"
-        # Step 3: Generate final HTTPS config
         generate_conf "$DOMAIN"
         copy_config "$DOMAIN"
         enable_site "$DOMAIN"
