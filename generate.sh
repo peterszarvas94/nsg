@@ -252,6 +252,10 @@ enable_site() {
     sudo find /tmp/nginx-backup/ -name "*.conf" -exec mv {} /etc/nginx/sites-enabled/ \;
     sudo rmdir /tmp/nginx-backup 2>/dev/null
     
+    # Restart nginx to pick up SSL configurations
+    log_info "Restarting nginx to apply SSL configuration"
+    sudo systemctl restart nginx
+    
     log_info "$domain enabled and configuration validated"
 }
 
