@@ -3,6 +3,64 @@
 # Config module for nginx static site configuration generator
 # Handles nginx configuration template generation
 
+generate_http_only_conf() {
+    local domain=$1
+    local config_file="${domain}.conf"
+    
+    log_info "Generating temporary HTTP-only config for SSL certificate generation"
+    
+    # Create webroot directory for certbot
+    sudo mkdir -p /var/www/certbot
+    sudo chown -R www-data:www-data /var/www/certbot
+    sudo chmod -R 755 /var/www/certbot
+    
+    if [ "$WWW_REDIRECT" = true ]; then
+        # HTTP-only config with www support for certificate generation
+        cat > "$config_file" << EOF
+server {
+    listen 80;
+    server_name ${domain} www.${domain};
+    
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+        try_files \$uri =404;
+    }
+    
+    location / {
+        return 200 "Certificate generation in progress...";
+        add_header Content-Type text/plain;
+    }
+}
+EOF
+    else
+        # HTTP-only config without www support
+        cat > "$config_file" << EOF
+server {
+    listen 80;
+    server_name ${domain};
+    
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+        try_files \$uri =404;
+    }
+    
+    location / {
+        return 200 "Certificate generation in progress...";
+        add_header Content-Type text/plain;
+    }
+}
+EOF
+    fi
+    
+    # Verify config file was created successfully
+    if [ ! -f "$config_file" ]; then
+        log_error "Failed to generate HTTP-only config file ${config_file}"
+        exit 1
+    fi
+    
+    log_info "Generated temporary HTTP-only config ${config_file}"
+}
+
 generate_conf() {
     local domain=$1
     local webroot="/var/www/$domain"
