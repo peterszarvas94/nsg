@@ -1,9 +1,12 @@
-# Nginx Static Site Setup
+# static-deploy
+
+Nginx Static Site Setup Generator
 
 ## Overview
 
 Single script to setup static websites with:
-- **Two-stage SSL deployment** - HTTP first, HTTPS after certificate generation
+
+- **One-command SSL deployment** - Automatic SSL certificate generation and HTTPS configuration
 - **HTTP → HTTPS redirects** - Automatic HTTPS enforcement
 - **Optional www → non-www redirects** - Use --www flag when needed
 - **Auto SSL certificate renewal** - Let's Encrypt with cron
@@ -12,43 +15,28 @@ Single script to setup static websites with:
 
 ## Quick Start
 
-One-liner (non-www only):
-
-```bash
-wget -O - "https://raw.githubusercontent.com/peterszarvas94/static-deploy/refs/heads/master/generate.sh?$(date +%s)" | bash -s -- -a
-```
-
-One-liner with www redirect:
-
-```bash
-wget -O - "https://raw.githubusercontent.com/peterszarvas94/static-deploy/refs/heads/master/generate.sh?$(date +%s)" | bash -s -- -a -w
-```
-
-Or clone and run locally:
+Cloning to server:
 
 ```bash
 git clone https://github.com/peterszarvas94/static-deploy.git
 cd static-deploy
 chmod +x generate.sh
-./generate.sh -a                    # non-www only
-./generate.sh -a -w                 # with www redirect
+sudo ./generate.sh --all -www
 ```
 
-Or clone and run locally:
+One-liner remote Installation:
 
 ```bash
-git clone https://github.com/peterszarvas94/static-deploy.git
-cd static-deploy
-chmod +x generate.sh
-./generate.sh -a
+wget -O - "https://raw.githubusercontent.com/peterszarvas94/static-deploy/refs/heads/master/generate.sh?$(date +%s)" | sudo bash -s -- --all --www
 ```
 
 ## How It Works
 
-The script uses a **two-stage approach** to avoid SSL certificate chicken-and-egg problems:
+The script handles SSL certificates and HTTPS configuration automatically in a single command:
 
-1. **Stage 1 - HTTP Setup**: Creates HTTP-only config, enables site
-2. **Stage 2 - SSL Setup**: Gets certificates, updates to HTTPS config
+1. **SSL Certificate**: Gets Let's Encrypt certificates using standalone mode
+2. **HTTPS Configuration**: Generates nginx config with SSL and HTTP→HTTPS redirects
+3. **Site Activation**: Copies config to nginx and enables the site
 
 ## Prerequisites
 
@@ -58,35 +46,19 @@ The script uses a **two-stage approach** to avoid SSL certificate chicken-and-eg
 
 _Note: The script auto-installs nginx and certbot if missing_
 
-## Manual Setup (Step by Step)
+## Usage
 
-### 1. Download and Run
+### 1. Run the Script
+
+Most users should use the `--all` flag for complete setup:
 
 ```bash
-# Complete setup (non-www only):
-./generate.sh --all --domain=example.com
-# Or with short flags:
-./generate.sh -a -d example.com
-
-# Complete setup with www redirect (www→non-www):
-./generate.sh --all --www --domain=example.com
-# Or with short flags:
-./generate.sh -a -w -d example.com
-
-# Interactive mode (will prompt for domain):
-./generate.sh --all
-./generate.sh -a
-
-# Step by step:
-./generate.sh --conf --domain=example.com     # Generate config
-./generate.sh --copy --domain=example.com     # Create dir & copy to nginx
-./generate.sh --enable --domain=example.com   # Enable site
-./generate.sh --ssl --domain=example.com      # Get SSL & update config
+sudo ./generate.sh --all --domain=yourdomain.com
 ```
 
 ### 2. Deploy Your Website Files
 
-After running the script, your nginx + SSL setup is complete! Now add your website files:
+After running the script, your nginx + SSL setup is complete! The script handles everything automatically. Now just add your website files:
 
 ```bash
 # The script creates your webroot at: /var/www/yourdomain.com/
@@ -123,21 +95,12 @@ sudo chmod -R 755 /var/www/example.com/
 
 ### 3. Multiple Sites
 
+Run the script separately for each domain:
+
 ```bash
-# Run the script separately for each domain:
-./generate.sh --all --domain=site1.com
-./generate.sh --all --domain=site2.com
-./generate.sh --all --domain=site3.com
-
-# Or with short flags:
-./generate.sh -a -d site1.com
-./generate.sh -a -d site2.com
-./generate.sh -a -d site3.com
-
-# Or run multiple times in interactive mode:
-./generate.sh -a  # Will prompt: enter site1.com
-./generate.sh -a  # Will prompt: enter site2.com
-./generate.sh -a  # Will prompt: enter site3.com
+sudo ./generate.sh --all --domain=site1.com
+sudo ./generate.sh --all --domain=site2.com
+sudo ./generate.sh --all --domain=site3.com
 ```
 
 ## Script Flags
@@ -148,48 +111,25 @@ sudo chmod -R 755 /var/www/example.com/
 
 **Available actions:**
 
-| Long Flag  | Short | Description                                          |
-| ---------- | ----- | ---------------------------------------------------- |
-| `--conf`   | `-c`  | Generate HTTP config file only                       |
-| `--copy`   | `-p`  | Create directory and copy config to nginx            |
-| `--enable` | `-e`  | Enable site in nginx (tests config first)            |
-| `--ssl`    | `-s`  | Get SSL certificate and update to HTTPS config       |
-| `--all`    | `-a`  | Run all steps: conf → copy → enable → ssl            |
-| `--check`  | `-k`  | Check domain health (DNS, HTTP, HTTPS, SSL)          |
-| `--remove` | `-r`  | Remove site completely (webroot + config + SSL cert) |
-| `--help`   | `-h`  | Show usage and prerequisites                         |
+| Long Flag  | Short | Description                                            |
+| ---------- | ----- | ------------------------------------------------------ |
+| `--conf`   | `-c`  | Generate HTTPS config file (requires SSL certificates) |
+| `--copy`   | `-p`  | Create directory and copy config to nginx              |
+| `--enable` | `-e`  | Enable site in nginx (tests config first)              |
+| `--ssl`    | `-s`  | Get SSL certificate using Let's Encrypt                |
+| `--all`    | `-a`  | Run all steps: ssl → conf → copy → enable              |
+| `--check`  | `-k`  | Check domain health (DNS, HTTP, HTTPS, SSL)            |
+| `--remove` | `-r`  | Remove site completely (webroot + config + SSL cert)   |
+| `--help`   | `-h`  | Show usage and prerequisites                           |
 
-**Domain options:**
-- `--domain=example.com` or `-d example.com` - Specify domain
-- `--www` or `-w` - Redirect www to non-www (optional)
-- If no domain provided, script will prompt for input
+**Options:**
 
-**Examples:**
-```bash
-# Show help
-./generate.sh --help
-./generate.sh -h
+| Long Flag              | Short            | Description                        |
+| ---------------------- | ---------------- | ---------------------------------- |
+| `--domain=example.com` | `-d example.com` | Specify domain to work with        |
+| `--www`                | `-w`             | Redirect www to non-www (optional) |
 
-# Complete setup (non-www only)
-./generate.sh --all --domain=example.com
-./generate.sh -a -d example.com
-
-# Complete setup with www redirect
-./generate.sh --all --www --domain=example.com
-./generate.sh -a -w -d example.com
-
-# Interactive mode
-./generate.sh --all    # Will prompt for domain
-./generate.sh -a       # Same, with short flag
-
-# Health check
-./generate.sh --check --domain=example.com
-./generate.sh -k -d example.com
-
-# Remove site
-./generate.sh --remove --domain=example.com
-./generate.sh -r -d example.com
-```
+**Note:** If no domain provided, script will prompt for input
 
 ## File Structure
 
@@ -235,3 +175,68 @@ sudo systemctl status nginx      # Check nginx status
 sudo certbot certificates        # Check SSL certificates
 curl -I https://example.com      # Test HTTPS redirect
 ```
+
+## Examples
+
+### Complete Setup
+
+```bash
+# Basic setup (non-www domain only)
+sudo ./generate.sh --all --domain=example.com
+sudo ./generate.sh -a -d example.com                    # Short flags
+
+# Setup with www redirect (www.example.com → example.com)
+sudo ./generate.sh --all --www --domain=example.com
+sudo ./generate.sh -a -w -d example.com                 # Short flags
+
+# Interactive mode (will prompt for domain)
+sudo ./generate.sh --all
+sudo ./generate.sh -a                                   # Short flag
+```
+
+### Health Checks
+
+```bash
+# Check domain health (DNS, HTTP, HTTPS, SSL)
+sudo ./generate.sh --check --domain=example.com
+sudo ./generate.sh -k -d example.com                    # Short flags
+```
+
+### Site Management
+
+```bash
+# Remove site completely (webroot + config + SSL cert)
+sudo ./generate.sh --remove --domain=example.com
+sudo ./generate.sh -r -d example.com                    # Short flags
+
+# Show help
+./generate.sh --help
+./generate.sh -h                                        # Short flag
+```
+
+### Advanced: Manual Step-by-Step
+
+```bash
+# If you need granular control over each step:
+sudo ./generate.sh --ssl --domain=example.com          # Get SSL certificate
+sudo ./generate.sh --conf --domain=example.com         # Generate HTTPS config
+sudo ./generate.sh --copy --domain=example.com         # Create dir & copy to nginx
+sudo ./generate.sh --enable --domain=example.com       # Enable site
+```
+
+### Multiple Sites
+
+```bash
+# Set up multiple domains
+sudo ./generate.sh --all --domain=blog.example.com
+sudo ./generate.sh --all --domain=shop.example.com
+sudo ./generate.sh --all --domain=api.example.com
+
+# Or with www redirects
+sudo ./generate.sh --all --www --domain=blog.example.com
+sudo ./generate.sh --all --www --domain=shop.example.com
+```
+
+---
+
+This project created with the assistance of [Claude](https://claude.ai) and [OpenCode](https://opencode.ai)
