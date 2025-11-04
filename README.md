@@ -9,11 +9,11 @@ Single script to setup multiple static websites with:
 
 ## Quick Start
 ```bash
-# One-liner setup (future):
-wget -O - https://raw.githubusercontent.com/user/repo/main/generate-site-config.sh | bash -s -- --all example.com
+# One-liner setup (always gets latest version):
+wget -O - "https://raw.githubusercontent.com/peterszarvas94/static-deploy/refs/heads/master/generate-site-config.sh?$(date +%s)" | bash -s -- --all example.com
 
 # Or download and run:
-wget https://raw.githubusercontent.com/user/repo/main/generate-site-config.sh
+wget "https://raw.githubusercontent.com/peterszarvas94/static-deploy/refs/heads/master/generate-site-config.sh?$(date +%s)" -O generate-site-config.sh
 chmod +x generate-site-config.sh
 ./generate-site-config.sh --all example.com
 ```
