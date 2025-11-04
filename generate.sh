@@ -271,10 +271,10 @@ setup_ssl() {
     # Get certificate using standalone mode
     if [ "$WWW_REDIRECT" = true ]; then
         log_info "Getting SSL certificate for $domain and www.$domain"
-        sudo certbot certonly --standalone -d "$domain" -d "www.$domain" --non-interactive --agree-tos --email admin@"$domain"
+        sudo certbot certonly --standalone -d "$domain" -d "www.$domain" --expand --non-interactive --agree-tos --email admin@"$domain"
     else
         log_info "Getting SSL certificate for $domain only"
-        sudo certbot certonly --standalone -d "$domain" --non-interactive --agree-tos --email admin@"$domain"
+        sudo certbot certonly --standalone -d "$domain" --expand --non-interactive --agree-tos --email admin@"$domain"
     fi
     
     if [ $? -ne 0 ]; then
@@ -284,6 +284,10 @@ setup_ssl() {
     fi
     
     log_info "SSL certificate obtained for $domain"
+    
+    # Start nginx back up
+    log_info "Starting nginx"
+    sudo systemctl start nginx
     
     # Setup auto-renewal cron job
     if ! crontab -l 2>/dev/null | grep -q "certbot renew"; then
