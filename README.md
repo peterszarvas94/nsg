@@ -1,137 +1,136 @@
 # Nginx Static Site Setup
 
 ## Overview
-Single script to setup multiple static websites with:
-- HTTP → HTTPS redirects
-- www → non-www redirects
-- Auto SSL certificate renewal
-- Automated nginx configuration
+
+Single script to setup static websites with:
+- ✅ **Two-stage SSL deployment** - HTTP first, HTTPS after certificate generation
+- ✅ **HTTP → HTTPS redirects** - Automatic HTTPS enforcement
+- ✅ **www → non-www redirects** - Canonical domain handling
+- ✅ **Auto SSL certificate renewal** - Let's Encrypt with cron
+- ✅ **Automated nginx configuration** - Zero-config setup
+- ✅ **Fresh Ubuntu compatible** - Auto-installs dependencies
 
 ## Quick Start
+
 ```bash
 # One-liner setup (always gets latest version):
 wget -O - "https://raw.githubusercontent.com/peterszarvas94/static-deploy/refs/heads/master/generate-site-config.sh?$(date +%s)" | bash -s -- --all example.com
+```
 
+```bash
 # Or download and run:
 wget "https://raw.githubusercontent.com/peterszarvas94/static-deploy/refs/heads/master/generate-site-config.sh?$(date +%s)" -O generate-site-config.sh
 chmod +x generate-site-config.sh
 ./generate-site-config.sh --all example.com
 ```
 
-## Manual Installation
+## How It Works
 
-### 1. Install Nginx
-```bash
-sudo apt update && sudo apt install nginx
-```
+The script uses a **two-stage approach** to avoid SSL certificate chicken-and-egg problems:
 
-### 2. Run the Script
+1. **Stage 1 - HTTP Setup**: Creates HTTP-only config, enables site
+2. **Stage 2 - SSL Setup**: Gets certificates, updates to HTTPS config
+
+## Prerequisites
+
+- Ubuntu/Debian server with root/sudo access
+- Domain pointing to your server's IP address
+- Ports 80 and 443 open (script will warn about firewall issues)
+
+*Note: The script auto-installs nginx and certbot if missing*
+
+## Manual Setup (Step by Step)
+
+### 1. Download and Run
+
 ```bash
-# Complete setup for a site
+# Complete setup (recommended):
 ./generate-site-config.sh --all example.com
 
 # Or step by step:
-./generate-site-config.sh --conf example.com     # Generate config
-./generate-site-config.sh --copy example.com     # Create dir & copy
-./generate-site-config.sh --enable example.com   # Enable site
-./generate-site-config.sh --ssl example.com      # Setup SSL
-
-# For multiple sites, run separately:
-./generate-site-config.sh --all mysite.com
+./generate-site-config.sh --conf example.com     # Generate HTTP config
+./generate-site-config.sh --copy example.com     # Create dir & copy to nginx  
+./generate-site-config.sh --enable example.com   # Enable site (HTTP only)
+./generate-site-config.sh --ssl example.com      # Get SSL & update to HTTPS
 ```
 
-### 3. Copy Your Files
+### 2. Copy Your Static Files
+
 ```bash
-# Copy your static files to webroot (automatically created)
+# Upload your website files to the webroot (automatically created):
 sudo cp -r /path/to/your/site/* /var/www/example.com/
+
+# Or upload via rsync/scp:
+rsync -avz /local/site/ user@server:/var/www/example.com/
 ```
 
-### 4. Start Nginx
+### 3. Multiple Sites
+
 ```bash
-sudo nginx -t && sudo systemctl restart nginx && sudo systemctl enable nginx
-```
-
-### 2. Copy Main Configuration
-```bash
-sudo cp nginx.conf /etc/nginx/nginx.conf
-```
-
-### 3. Generate Site Configuration
-```bash
-# View all available options
-./generate-site-config.sh --help
-
-# Generate, copy, and enable site in one command
-./generate-site-config.sh --all example.com
-
-# Or run steps individually:
-./generate-site-config.sh --conf example.com     # Generate config file
-./generate-site-config.sh --copy example.com     # Create dir + copy to nginx
-./generate-site-config.sh --enable example.com   # Enable site
-```
-
-### 4. Setup Files and SSL
-```bash
-# Create certbot directory
-sudo mkdir -p /var/www/certbot
-
-# Copy your static files to webroot (directory created by --copy or --all)
-sudo cp -r /path/to/your/site/* /var/www/example.com/
-```
-
-### 5. Setup SSL Certificates
-```bash
-# SSL is included with --all flag, or run separately:
-./generate-site-config.sh --ssl example.com
-```
-
-### 6. Start Nginx
-```bash
-sudo nginx -t  # Test configuration
-sudo systemctl start nginx
-sudo systemctl enable nginx
+# Run the script once for each domain:
+./generate-site-config.sh --all site1.com
+./generate-site-config.sh --all site2.com  
+./generate-site-config.sh --all site3.com
 ```
 
 ## Script Flags
 
-The script supports these flags:
-- `--conf` - Generate config files only
-- `--copy` - Create directories and copy configs to nginx
-- `--enable` - Enable sites in nginx  
-- `--ssl` - Setup SSL certificates with certbot
-- `--all` - Run all steps (conf + copy + enable + ssl)
-- `--help` - Show usage information
+```bash
+./generate-site-config.sh [FLAG] <domain>
+```
+
+**Available flags:**
+- `--conf` - Generate HTTP config file only
+- `--copy` - Create directory and copy config to nginx
+- `--enable` - Enable site in nginx (tests config first)
+- `--ssl` - Get SSL certificate and update to HTTPS config  
+- `--all` - Run all steps: conf → copy → enable → ssl
+- `--help` - Show usage and prerequisites
 
 **Examples:**
 ```bash
 ./generate-site-config.sh --help           # Show all options
-./generate-site-config.sh --all example.com # Complete setup
-./generate-site-config.sh --ssl example.com # SSL only
-
-# For multiple sites, run the script multiple times:
-./generate-site-config.sh --all site1.com
-./generate-site-config.sh --all site2.com
+./generate-site-config.sh --all example.com # Complete setup (recommended)
+./generate-site-config.sh --ssl example.com # Add SSL to existing HTTP site
 ```
 
-### Directory Paths
-- Sites: `/var/www/domain.com` (automatically created)
-- Certbot challenges: `/var/www/certbot`
+## File Structure
 
-### SSL Certificates
-Certificates are stored in:
-- `/etc/letsencrypt/live/domain.com/fullchain.pem`
-- `/etc/letsencrypt/live/domain.com/privkey.pem`
+**Created automatically:**
+- `/var/www/example.com/` - Your website files go here
+- `/etc/nginx/sites-available/example.com.conf` - Nginx config
+- `/etc/nginx/sites-enabled/example.com.conf` - Symlink to enabled config
+- `/var/www/certbot/` - Let's Encrypt challenge directory
 
-## Auto Renewal
-Certificates auto-renew daily at 3 AM via cron job.
+**SSL certificates stored at:**
+- `/etc/letsencrypt/live/example.com/fullchain.pem`
+- `/etc/letsencrypt/live/example.com/privkey.pem`
 
-Check renewal status:
+## SSL Auto-Renewal
+
+- ✅ **Automatic daily renewal** at 3 AM via cron job
+- ✅ **Nginx auto-reload** after renewal
+- ✅ **90-day Let's Encrypt certificates** renewed at 30 days
+
+**Check certificate status:**
 ```bash
 sudo certbot certificates
+sudo certbot renew --dry-run  # Test renewal
 ```
 
-Manual renewal:
+## Troubleshooting
+
+**Common issues:**
+
+1. **"Domain not resolving"** - Make sure DNS points to your server
+2. **"Port 80/443 blocked"** - Check firewall: `sudo ufw allow 'Nginx Full'`
+3. **"SSL certificate failed"** - Ensure domain resolves and no other service uses port 80
+4. **"Permission denied"** - Run with `sudo` or as root user
+
+**Check everything is working:**
 ```bash
-sudo certbot renew
-sudo systemctl reload nginx
+sudo nginx -t                    # Test nginx config
+sudo systemctl status nginx      # Check nginx status  
+sudo certbot certificates        # Check SSL certificates
+curl -I https://example.com      # Test HTTPS redirect
 ```

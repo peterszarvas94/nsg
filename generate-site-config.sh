@@ -96,7 +96,40 @@ generate_conf() {
     local webroot="/var/www/$domain"
     local config_file="${domain}.conf"
     
-    log_info "Generating config for $domain"
+    log_info "Generating HTTP-only config for $domain (SSL will be added after certificate generation)"
+    
+    cat > "$config_file" << EOF
+# HTTP config for ${domain} (before SSL)
+server {
+    listen 80;
+    server_name ${domain} www.${domain};
+    
+    # Allow certbot challenges
+    location /.well-known/acme-challenge/ { 
+        root /var/www/certbot; 
+    }
+    
+    # Temporary: serve content over HTTP until SSL is ready
+    location / {
+        # Redirect www to non-www
+        if (\$host = www.${domain}) {
+            return 301 http://${domain}\$request_uri;
+        }
+        root ${webroot};
+        index index.html;
+        try_files \$uri \$uri/ =404;
+    }
+}
+EOF
+    log_success "Generated HTTP-only ${config_file}"
+}
+
+generate_ssl_conf() {
+    local domain=$1
+    local webroot="/var/www/$domain"
+    local config_file="${domain}.conf"
+    
+    log_info "Updating config to HTTPS for $domain"
     
     cat > "$config_file" << EOF
 # HTTP -> HTTPS, www -> non-www for ${domain}
@@ -127,7 +160,7 @@ server {
     location / { try_files \$uri \$uri/ =404; }
 }
 EOF
-    log_success "Generated ${config_file}"
+    log_success "Updated to HTTPS config: ${config_file}"
 }
 
 copy_config() {
@@ -217,8 +250,22 @@ setup_ssl() {
     sudo certbot certonly --webroot -w /var/www/certbot -d "$domain" -d "www.$domain" --non-interactive --agree-tos --email admin@"$domain"
     if [ $? -eq 0 ]; then
         log_success "SSL certificate obtained for $domain"
-        # Reload nginx to use new certificates
-        sudo systemctl reload nginx
+        
+        # Now update config to use HTTPS
+        generate_ssl_conf "$domain"
+        
+        # Copy updated config
+        sudo cp "${domain}.conf" /etc/nginx/sites-available/
+        log_success "Updated nginx config with SSL"
+        
+        # Test and reload nginx
+        if sudo nginx -t; then
+            sudo systemctl reload nginx
+            log_success "Nginx reloaded with SSL configuration"
+        else
+            log_error "SSL configuration test failed"
+            exit 1
+        fi
     else
         log_error "Failed to get SSL certificate for $domain"
         log_error "Check that:"
@@ -248,6 +295,14 @@ fi
 
 FLAG=$1
 DOMAIN=$2
+
+# Validate domain format
+if [[ ! "$DOMAIN" =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$ ]]; then
+    log_error "Invalid domain format: $DOMAIN"
+    exit 1
+fi
+
+log_info "Processing domain: $DOMAIN"
 
 case $FLAG in
     --conf)
