@@ -100,20 +100,28 @@ generate_conf() {
     local domain=$1
     local webroot="/var/www/$domain"
     local config_file="${domain}.conf"
+    local ssl_path=""
     
     log_info "Generating HTTPS config for $domain"
     
-    # Check if SSL certificates exist
-    if [ ! -f "/etc/letsencrypt/live/${domain}/fullchain.pem" ] || [ ! -f "/etc/letsencrypt/live/${domain}/privkey.pem" ]; then
+    # Find the correct SSL certificate path (could be domain or domain-0001, etc.)
+    for path in "/etc/letsencrypt/live/${domain}" "/etc/letsencrypt/live/${domain}-"*; do
+        if [ -f "$path/fullchain.pem" ] && [ -f "$path/privkey.pem" ]; then
+            ssl_path="$path"
+            break
+        fi
+    done
+    
+    if [ -z "$ssl_path" ]; then
         log_error "SSL certificates not found for $domain"
-        log_error "Expected files:"
-        log_error "  /etc/letsencrypt/live/${domain}/fullchain.pem"
-        log_error "  /etc/letsencrypt/live/${domain}/privkey.pem"
+        log_error "Checked paths:"
+        log_error "  /etc/letsencrypt/live/${domain}/"
+        log_error "  /etc/letsencrypt/live/${domain}-*/"
         log_error "Run: $0 --ssl --domain=$domain first"
         exit 1
     fi
     
-    log_info "SSL certificates found for $domain"
+    log_info "SSL certificates found at: $ssl_path"
     
     if [ "$WWW_REDIRECT" = true ]; then
         # Template 1: HTTPS with www → non-www redirect
@@ -129,16 +137,16 @@ server {
 server {
     listen 443 ssl;
     server_name www.${domain};
-    ssl_certificate /etc/letsencrypt/live/${domain}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/${domain}/privkey.pem;
+    ssl_certificate ${ssl_path}/fullchain.pem;
+    ssl_certificate_key ${ssl_path}/privkey.pem;
     return 301 https://${domain}\$request_uri;
 }
 
 server {
     listen 443 ssl;
     server_name ${domain};
-    ssl_certificate /etc/letsencrypt/live/${domain}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/${domain}/privkey.pem;
+    ssl_certificate ${ssl_path}/fullchain.pem;
+    ssl_certificate_key ${ssl_path}/privkey.pem;
     root ${webroot};
     index index.html;
     location / { try_files \$uri \$uri/ \$uri/index.html =404; }
@@ -158,8 +166,8 @@ server {
 server {
     listen 443 ssl;
     server_name ${domain};
-    ssl_certificate /etc/letsencrypt/live/${domain}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/${domain}/privkey.pem;
+    ssl_certificate ${ssl_path}/fullchain.pem;
+    ssl_certificate_key ${ssl_path}/privkey.pem;
     root ${webroot};
     index index.html;
     location / { try_files \$uri \$uri/ \$uri/index.html =404; }
