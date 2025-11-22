@@ -1,4 +1,4 @@
-# static-deploy
+# NSG
 
 Nginx Static Site Setup Generator
 
