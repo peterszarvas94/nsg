@@ -3,6 +3,20 @@
 # Config module for nginx static site configuration generator
 # Handles nginx configuration template generation
 
+get_template() {
+    local template_name=$1
+    local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    local template_dir="$script_dir/../templates"
+    local template_path="$template_dir/${template_name}"
+    
+    if [ ! -f "$template_path" ]; then
+        log_error "Template not found: $template_path"
+        exit 1
+    fi
+    
+    echo "$template_path"
+}
+
 generate_http_only_conf() {
     local domain=$1
     local config_file="${domain}.conf"
@@ -14,42 +28,20 @@ generate_http_only_conf() {
     sudo chown -R www-data:www-data /var/www/certbot
     sudo chmod -R 755 /var/www/certbot
     
+    # Set environment variable for envsubst
+    export DOMAIN="$domain"
+    
+    # Generate config using envsubst
     if [ "$WWW_REDIRECT" = true ]; then
         # HTTP-only config with www support for certificate generation
-        cat > "$config_file" << EOF
-server {
-    listen 80;
-    server_name ${domain} www.${domain};
-    
-    location /.well-known/acme-challenge/ {
-        root /var/www/certbot;
-        try_files \$uri =404;
-    }
-    
-    location / {
-        return 200 "Certificate generation in progress...";
-        add_header Content-Type text/plain;
-    }
-}
-EOF
+        log_info "Using template: HTTP-only with www support"
+        local template_path=$(get_template "nginx-www-http.conf.template")
+        envsubst < "$template_path" > "$config_file"
     else
         # HTTP-only config without www support
-        cat > "$config_file" << EOF
-server {
-    listen 80;
-    server_name ${domain};
-    
-    location /.well-known/acme-challenge/ {
-        root /var/www/certbot;
-        try_files \$uri =404;
-    }
-    
-    location / {
-        return 200 "Certificate generation in progress...";
-        add_header Content-Type text/plain;
-    }
-}
-EOF
+        log_info "Using template: HTTP-only without www"
+        local template_path=$(get_template "nginx-no-www-http.conf.template")
+        envsubst < "$template_path" > "$config_file"
     fi
     
     # Verify config file was created successfully
@@ -63,6 +55,7 @@ EOF
 
 generate_conf() {
     local domain=$1
+    local pocketbase_enabled=${2:-false}
     local webroot="/var/www/$domain"
     local config_file="${domain}.conf"
     local ssl_path=""
@@ -88,56 +81,32 @@ generate_conf() {
     
     log_info "SSL certificates found at: $ssl_path"
     
+    # Set environment variables for envsubst
+    export DOMAIN="$domain"
+    export WEBROOT="$webroot"
+    export SSL_PATH="$ssl_path"
+    
+    # PocketBase locations
+    if [ "$pocketbase_enabled" = true ]; then
+        # Load PocketBase locations from template
+        local template_path=$(get_template "pocketbase-locations.conf.template")
+        export POCKETBASE_LOCATIONS=$(cat "$template_path")
+        log_info "PocketBase proxy enabled for /api/ and /_/ endpoints"
+    else
+        export POCKETBASE_LOCATIONS=""
+    fi
+    
+    # Generate config using envsubst
     if [ "$WWW_REDIRECT" = true ]; then
         # Template 1: HTTPS with www → non-www redirect
         log_info "Using template: HTTPS with www redirect"
-        cat > "$config_file" << EOF
-server {
-    listen 80;
-    server_name ${domain} www.${domain};
-    location /.well-known/acme-challenge/ { root /var/www/certbot; }
-    location / { return 301 https://${domain}\$request_uri; }
-}
-
-server {
-    listen 443 ssl;
-    server_name www.${domain};
-    ssl_certificate ${ssl_path}/fullchain.pem;
-    ssl_certificate_key ${ssl_path}/privkey.pem;
-    return 301 https://${domain}\$request_uri;
-}
-
-server {
-    listen 443 ssl;
-    server_name ${domain};
-    ssl_certificate ${ssl_path}/fullchain.pem;
-    ssl_certificate_key ${ssl_path}/privkey.pem;
-    root ${webroot};
-    index index.html;
-    location / { try_files \$uri \$uri/ \$uri/index.html =404; }
-}
-EOF
+        local template_path=$(get_template "nginx-www-https.conf.template")
+        envsubst < "$template_path" > "$config_file"
     else
         # Template 2: HTTPS only (no www redirect)
-        log_info "Using template: HTTPS only"
-        cat > "$config_file" << EOF
-server {
-    listen 80;
-    server_name ${domain};
-    location /.well-known/acme-challenge/ { root /var/www/certbot; }
-    location / { return 301 https://${domain}\$request_uri; }
-}
-
-server {
-    listen 443 ssl;
-    server_name ${domain};
-    ssl_certificate ${ssl_path}/fullchain.pem;
-    ssl_certificate_key ${ssl_path}/privkey.pem;
-    root ${webroot};
-    index index.html;
-    location / { try_files \$uri \$uri/ \$uri/index.html =404; }
-}
-EOF
+        log_info "Using template: HTTPS without www"
+        local template_path=$(get_template "nginx-no-www-https.conf.template")
+        envsubst < "$template_path" > "$config_file"
     fi
     
     # Verify config file was created successfully

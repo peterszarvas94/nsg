@@ -1,0 +1,29 @@
+Usage: $0 COMMAND [--domain=example.com] [OPTIONS]
+Commands:
+  setup               Complete site setup (ssl + conf + copy + enable)
+  pb                  Add PocketBase proxy to existing site
+  check               Check domain health (DNS, HTTP, HTTPS, SSL)
+  remove              Remove site completely (webroot + config + SSL cert)
+
+Options:
+  --domain=example.com     Specify domain to work with
+  --www                    Redirect www to non-www (for setup command)
+  --pb                     Include PocketBase proxy (for setup command)
+  --help                   Show this help
+  (if domain not provided for most commands, you will be prompted to enter it)
+Examples:
+  $0 setup --domain=example.com              # Setup static site
+  $0 setup --www --domain=example.com         # Setup site with www redirect
+  $0 setup --pb --domain=example.com           # Setup site with PocketBase
+  $0 setup --www --pb --domain=example.com    # Setup site with both www and PocketBase
+  $0 pb --domain=example.com                 # Add PocketBase to existing site
+  $0 check --domain=example.com               # Verify site is working
+
+  $0 setup                                    # Will prompt for domain
+Prerequisites:
+  - Domain must point to this server's IP
+  - Ports 80 and 443 must be open
+  - Root/sudo access required
+SSL Auto-renewal Fix:
+  The script now uses webroot method instead of standalone to prevent
+  renewal failures. Remove existing certificates before using new version.
