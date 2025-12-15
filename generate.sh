@@ -67,7 +67,7 @@ done
 
 # Ensure we have a valid command
 case $COMMAND in
-    setup|pb|check|remove)
+    setup|pb|config|check|remove)
         ;;
     *)
         log_error "Unknown command: $COMMAND"
@@ -109,6 +109,11 @@ case $COMMAND in
         log_info "PocketBase accessible at: https://$DOMAIN"
         log_info "Make sure PocketBase is running on localhost:$PB_PORT"
         log_info "Set Application URL in PocketBase to: https://$DOMAIN"
+        ;;
+    config)
+        generate_pocketbase_conf "$DOMAIN" "$PB_PORT"
+        log_info "Config generated: ${DOMAIN}.conf"
+        log_info "Deploy with: scp ${DOMAIN}.conf user@server:/etc/nginx/sites-available/"
         ;;
     check)
         check_site "$DOMAIN"

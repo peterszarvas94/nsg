@@ -2,6 +2,7 @@ Usage: $0 COMMAND [--domain=example.com] [OPTIONS]
 Commands:
   setup               Complete static site setup (ssl + conf + copy + enable)
   pb                  Setup PocketBase subdomain (e.g., pb.example.com)
+  config              Generate config file only (no SSL/deploy)
   check               Check domain health (DNS, HTTP, HTTPS, SSL)
   remove              Remove site completely (webroot + config + SSL cert)
 
@@ -16,6 +17,7 @@ Examples:
   $0 setup --www --domain=example.com             # Setup site with www redirect
   $0 pb --domain=pb.example.com                   # Setup PocketBase subdomain (port 8090)
   $0 pb --domain=pb2.example.com --port=8091      # Setup second PocketBase (port 8091)
+  $0 config --domain=pb.example.com               # Generate config only (for updates)
   $0 check --domain=example.com                   # Verify site is working
 
   $0 setup                                        # Will prompt for domain
