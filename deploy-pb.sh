@@ -89,6 +89,8 @@ fi
 
 # Sync migrations
 if [ -n "$MIGRATIONS_PATH" ]; then
+    # Expand tilde
+    MIGRATIONS_PATH="${MIGRATIONS_PATH/#\~/$HOME}"
     if [ ! -d "$MIGRATIONS_PATH" ]; then
         echo "[ERROR] Migrations path not found: $MIGRATIONS_PATH"
         exit 1
@@ -99,6 +101,8 @@ fi
 
 # Sync data
 if [ -n "$DATA_PATH" ]; then
+    # Expand tilde
+    DATA_PATH="${DATA_PATH/#\~/$HOME}"
     if [ ! -d "$DATA_PATH" ]; then
         echo "[ERROR] Data path not found: $DATA_PATH"
         exit 1
