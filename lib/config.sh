@@ -36,12 +36,12 @@ generate_http_only_conf() {
         # HTTP-only config with www support for certificate generation
         log_info "Using template: HTTP-only with www support"
         local template_path=$(get_template "nginx-www-http.conf.template")
-        envsubst < "$template_path" > "$config_file"
+        envsubst '$DOMAIN' < "$template_path" > "$config_file"
     else
         # HTTP-only config without www support
         log_info "Using template: HTTP-only without www"
         local template_path=$(get_template "nginx-no-www-http.conf.template")
-        envsubst < "$template_path" > "$config_file"
+        envsubst '$DOMAIN' < "$template_path" > "$config_file"
     fi
     
     # Verify config file was created successfully
@@ -101,12 +101,12 @@ generate_conf() {
         # Template 1: HTTPS with www → non-www redirect
         log_info "Using template: HTTPS with www redirect"
         local template_path=$(get_template "nginx-www-https.conf.template")
-        envsubst < "$template_path" > "$config_file"
+        envsubst '$DOMAIN,$WEBROOT,$SSL_PATH,$POCKETBASE_LOCATIONS' < "$template_path" > "$config_file"
     else
         # Template 2: HTTPS only (no www redirect)
         log_info "Using template: HTTPS without www"
         local template_path=$(get_template "nginx-no-www-https.conf.template")
-        envsubst < "$template_path" > "$config_file"
+        envsubst '$DOMAIN,$WEBROOT,$SSL_PATH,$POCKETBASE_LOCATIONS' < "$template_path" > "$config_file"
     fi
     
     # Verify config file was created successfully
