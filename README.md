@@ -8,7 +8,7 @@ Automated nginx setup with SSL for static sites and PocketBase applications.
 git clone https://github.com/peterszarvas94/nsg.git
 cd nsg
 chmod +x generate.sh
-sudo ./generate.sh all --domain=example.com
+sudo ./generate.sh setup --domain=example.com
 ```
 
 ## Commands
@@ -20,17 +20,17 @@ sudo ./generate.sh all --domain=example.com
 | Command  | Description                                 |
 | -------- | ------------------------------------------- |
 | `setup`  | Complete site setup (SSL + config + enable) |
-| `pb`     | Add PocketBase to existing site             |
+| `pb`     | Setup PocketBase subdomain                  |
 | `check`  | Check domain health                         |
 | `remove` | Remove site completely                      |
 
 ## Options
 
-| Option                 | Description                                  |
-| ---------------------- | -------------------------------------------- |
-| `--www`                | Enable www redirect (for setup command)      |
-| `--pb`                 | Include PocketBase proxy (for setup command) |
-| `--domain=example.com` | Specify domain                               |
+| Option                 | Description                             |
+| ---------------------- | --------------------------------------- |
+| `--www`                | Enable www redirect (for setup command) |
+| `--port=8090`          | PocketBase port (default: 8090)         |
+| `--domain=example.com` | Specify domain                          |
 
 ## Examples
 
@@ -44,9 +44,8 @@ sudo ./generate.sh all --domain=example.com
 ### PocketBase Sites
 
 ```bash
-./generate.sh setup --pb --domain=example.com  # Full setup
-./generate.sh setup --www --pb --domain=example.com  # With www and PocketBase
-./generate.sh pb --domain=example.com  # Add to existing site
+./generate.sh pb --domain=pb.example.com                 # Default port 8090
+./generate.sh pb --domain=pb2.example.com --port=8091    # Port 8091
 ```
 
 ### Site Management
@@ -58,11 +57,8 @@ sudo ./generate.sh all --domain=example.com
 
 ## PocketBase
 
-When using PocketBase commands, these endpoints are automatically proxied:
-
-- `/api/` → PocketBase API
-- `/_/` → PocketBase Admin panel
-- Port 8090 forwarded internally
+PocketBase gets its own subdomain with full proxy to localhost port (default 8090).
+Multiple PocketBase instances supported with different ports.
 
 ## Prerequisites
 

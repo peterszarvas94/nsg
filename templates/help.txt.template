@@ -1,25 +1,24 @@
 Usage: $0 COMMAND [--domain=example.com] [OPTIONS]
 Commands:
-  setup               Complete site setup (ssl + conf + copy + enable)
-  pb                  Add PocketBase proxy to existing site
+  setup               Complete static site setup (ssl + conf + copy + enable)
+  pb                  Setup PocketBase subdomain (e.g., pb.example.com)
   check               Check domain health (DNS, HTTP, HTTPS, SSL)
   remove              Remove site completely (webroot + config + SSL cert)
 
 Options:
   --domain=example.com     Specify domain to work with
   --www                    Redirect www to non-www (for setup command)
-  --pb                     Include PocketBase proxy (for setup command)
+  --port=8090              PocketBase port (default: 8090, for pb command)
   --help                   Show this help
   (if domain not provided for most commands, you will be prompted to enter it)
 Examples:
-  $0 setup --domain=example.com              # Setup static site
-  $0 setup --www --domain=example.com         # Setup site with www redirect
-  $0 setup --pb --domain=example.com           # Setup site with PocketBase
-  $0 setup --www --pb --domain=example.com    # Setup site with both www and PocketBase
-  $0 pb --domain=example.com                 # Add PocketBase to existing site
-  $0 check --domain=example.com               # Verify site is working
+  $0 setup --domain=example.com                  # Setup static site
+  $0 setup --www --domain=example.com             # Setup site with www redirect
+  $0 pb --domain=pb.example.com                   # Setup PocketBase subdomain (port 8090)
+  $0 pb --domain=pb2.example.com --port=8091      # Setup second PocketBase (port 8091)
+  $0 check --domain=example.com                   # Verify site is working
 
-  $0 setup                                    # Will prompt for domain
+  $0 setup                                        # Will prompt for domain
 Prerequisites:
   - Domain must point to this server's IP
   - Ports 80 and 443 must be open

@@ -27,7 +27,7 @@ show_help() {
 COMMAND=""
 DOMAIN=""
 WWW_REDIRECT=false
-POCKETBASE_ENABLED=false
+PB_PORT=8090
 
 # Check if no arguments or help requested
 if [ $# -eq 0 ] || [ "$1" = "--help" ]; then
@@ -47,8 +47,8 @@ while [ $# -gt 0 ]; do
 --www)
             WWW_REDIRECT=true
             ;;
-        --pb)
-            POCKETBASE_ENABLED=true
+        --port=*)
+            PB_PORT="${1#*=}"
             ;;
         --help)
             show_help
@@ -86,19 +86,12 @@ case $COMMAND in
     setup)
         check_prerequisites
         setup_ssl "$DOMAIN"
-        generate_conf "$DOMAIN" "$POCKETBASE_ENABLED"
+        generate_conf "$DOMAIN"
         copy_config "$DOMAIN"
         enable_site "$DOMAIN"
         
-        if [ "$POCKETBASE_ENABLED" = true ]; then
-            log_info "HTTPS site with PocketBase setup complete for $DOMAIN!"
-            log_info "Copy your files to: /var/www/$DOMAIN/"
-            log_info "PocketBase API available at: https://$DOMAIN/api"
-            log_info "PocketBase Admin available at: https://$DOMAIN/_"
-        else
-            log_info "HTTPS site setup complete for $DOMAIN!"
-            log_info "Copy your files to: /var/www/$DOMAIN/"
-        fi
+        log_info "HTTPS site setup complete for $DOMAIN!"
+        log_info "Copy your files to: /var/www/$DOMAIN/"
         
         if [ "$WWW_REDIRECT" = true ]; then
             log_info "WWW redirect enabled: www.$DOMAIN → $DOMAIN"
@@ -107,12 +100,15 @@ case $COMMAND in
         log_info "Visit: https://$DOMAIN"
         ;;
     pb)
-        generate_conf "$DOMAIN" true
+        check_prerequisites
+        setup_ssl "$DOMAIN"
+        generate_pocketbase_conf "$DOMAIN" "$PB_PORT"
         copy_config "$DOMAIN"
         enable_site "$DOMAIN"
-        log_info "PocketBase proxy added to $DOMAIN!"
-        log_info "PocketBase API available at: https://$DOMAIN/api"
-        log_info "PocketBase Admin available at: https://$DOMAIN/_"
+        log_info "PocketBase setup complete for $DOMAIN!"
+        log_info "PocketBase accessible at: https://$DOMAIN"
+        log_info "Make sure PocketBase is running on localhost:$PB_PORT"
+        log_info "Set Application URL in PocketBase to: https://$DOMAIN"
         ;;
     check)
         check_site "$DOMAIN"

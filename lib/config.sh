@@ -53,9 +53,54 @@ generate_http_only_conf() {
     log_info "Generated temporary HTTP-only config ${config_file}"
 }
 
+generate_pocketbase_conf() {
+    local domain=$1
+    local pb_port=${2:-8090}
+    local config_file="${domain}.conf"
+    local ssl_path=""
+    
+    log_info "Generating PocketBase HTTPS config for $domain"
+    
+    # Find the correct SSL certificate path
+    for path in "/etc/letsencrypt/live/${domain}" "/etc/letsencrypt/live/${domain}-"*; do
+        if [ -f "$path/fullchain.pem" ] && [ -f "$path/privkey.pem" ]; then
+            ssl_path="$path"
+            break
+        fi
+    done
+    
+    if [ -z "$ssl_path" ]; then
+        log_error "SSL certificates not found for $domain"
+        log_error "Checked paths:"
+        log_error "  /etc/letsencrypt/live/${domain}/"
+        log_error "  /etc/letsencrypt/live/${domain}-*/"
+        log_error "Run: $0 ssl --domain=$domain first"
+        exit 1
+    fi
+    
+    log_info "SSL certificates found at: $ssl_path"
+    
+    # Set environment variables for envsubst
+    export DOMAIN="$domain"
+    export SSL_PATH="$ssl_path"
+    export PB_PORT="$pb_port"
+    
+    # Generate config using envsubst
+    log_info "Using template: PocketBase HTTPS (port: $pb_port)"
+    local template_path=$(get_template "pocketbase-https.conf.template")
+    envsubst '$DOMAIN,$SSL_PATH,$PB_PORT' < "$template_path" > "$config_file"
+    
+    # Verify config file was created successfully
+    if [ ! -f "$config_file" ]; then
+        log_error "Failed to generate config file ${config_file}"
+        exit 1
+    fi
+    
+    log_info "Generated config ${config_file}"
+}
+
 generate_conf() {
     local domain=$1
-    local pocketbase_enabled=${2:-false}
     local webroot="/var/www/$domain"
     local config_file="${domain}.conf"
     local ssl_path=""
@@ -75,7 +120,7 @@ generate_conf() {
         log_error "Checked paths:"
         log_error "  /etc/letsencrypt/live/${domain}/"
         log_error "  /etc/letsencrypt/live/${domain}-*/"
-        log_error "Run: $0 --ssl --domain=$domain first"
+        log_error "Run: $0 ssl --domain=$domain first"
         exit 1
     fi
     
@@ -86,27 +131,17 @@ generate_conf() {
     export WEBROOT="$webroot"
     export SSL_PATH="$ssl_path"
     
-    # PocketBase locations
-    if [ "$pocketbase_enabled" = true ]; then
-        # Load PocketBase locations from template
-        local template_path=$(get_template "pocketbase-locations.conf.template")
-        export POCKETBASE_LOCATIONS=$(cat "$template_path")
-        log_info "PocketBase proxy enabled for /api/ and /_/ endpoints"
-    else
-        export POCKETBASE_LOCATIONS=""
-    fi
-    
     # Generate config using envsubst
     if [ "$WWW_REDIRECT" = true ]; then
         # Template 1: HTTPS with www → non-www redirect
         log_info "Using template: HTTPS with www redirect"
         local template_path=$(get_template "nginx-www-https.conf.template")
-        envsubst '$DOMAIN,$WEBROOT,$SSL_PATH,$POCKETBASE_LOCATIONS' < "$template_path" > "$config_file"
+        envsubst '$DOMAIN,$WEBROOT,$SSL_PATH' < "$template_path" > "$config_file"
     else
         # Template 2: HTTPS only (no www redirect)
         log_info "Using template: HTTPS without www"
         local template_path=$(get_template "nginx-no-www-https.conf.template")
-        envsubst '$DOMAIN,$WEBROOT,$SSL_PATH,$POCKETBASE_LOCATIONS' < "$template_path" > "$config_file"
+        envsubst '$DOMAIN,$WEBROOT,$SSL_PATH' < "$template_path" > "$config_file"
     fi
     
     # Verify config file was created successfully
